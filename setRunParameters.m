@@ -74,6 +74,8 @@ function parameters = setRunParameters(parameters)
     %path to basis image
     basisImagePath = 'segmentation_alignment/basisImage.tiff';
     
+    %number of images to use in order to find a video's median image
+    medianImageNumber = 1000;
     
     
     
@@ -492,6 +494,9 @@ function parameters = setRunParameters(parameters)
         parameters.rangeExtension = rangeExtension;
     end
     
+     if ~isfield(parameters,'medianImageNumber') || isempty(parameters.medianImageNumber)
+        parameters.medianImageNumber = medianImageNumber;
+    end
     
     
     

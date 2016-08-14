@@ -1,8 +1,12 @@
-function medianImage = findMedianImage(vidObj,N,firstFrame)
+function medianImage = findMedianImage(vidObj,N,firstFrame,lastFrame)
 
     N = min(N,vidObj.NumberOfFrames);
     if nargin < 3 || isempty(firstFrame)
         firstFrame = 1;
+    end
+    
+    if nargin < 4 || isempty(lastFrame)
+        lastFrame = vidObj.NumberOfFrames;
     end
 
     if vidObj.NumberOfFrames <= N
@@ -11,10 +15,7 @@ function medianImage = findMedianImage(vidObj,N,firstFrame)
     
     else
         
-        q = -1;
-        while q < firstFrame
-            q = randi(vidObj.NumberOfFrames);
-        end
+        q = randi(lastFrame - firstFrame + 1) + firstFrame - 1;
         
         image = read(vidObj,q);
         s = size(image);

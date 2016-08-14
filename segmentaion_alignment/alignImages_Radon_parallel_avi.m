@@ -1,4 +1,4 @@
-function [Xs,Ys,angles,areas,parameters,framesToCheck,svdskipped,areanorm] = ...
+function [Xs,Ys,angles,areas,parameters,framesToCheck,svdskipped,areanorm,medianImage] = ...
     alignImages_Radon_parallel_avi(file_path,startImage,finalImage,image_path,parameters)
 %alignImages_Radon_parallel_avi runs the alignment and segmentation routines on a .avi file
 %   and saves the output files to a directorty (called by ../runAlignment.m)
@@ -40,14 +40,19 @@ function [Xs,Ys,angles,areas,parameters,framesToCheck,svdskipped,areanorm] = ...
     symLine = parameters.symLine;
     initialPhi = parameters.initialPhi;
     dilateSize = parameters.dilateSize;
-    cannyParameter = parameters.cannyParameter;
+    %cannyParameter = parameters.cannyParameter;
     imageThreshold = parameters.imageThreshold;
     maxAreaDifference = parameters.maxAreaDifference;
-    segmentationOff = parameters.segmentationOff;
+    segmentationOff = false;
     basisImage = parameters.basisImage;
     bodyThreshold = parameters.bodyThreshold;
     numProcessors = parameters.numProcessors;
     rangeExtension = parameters.rangeExtension;
+    
+    medianImageNumber = parameters.medianImageNumber;
+    outputImageSize = parameters.outputImageSize;
+    
+    %imageLength,threshold,imageThreshold,dilateSize,isAlbino
     
     %Choose starting and finishing images
     
@@ -55,20 +60,20 @@ function [Xs,Ys,angles,areas,parameters,framesToCheck,svdskipped,areanorm] = ...
     nFrames = vidObj.NumberOfFrames;
     
     if isempty(startImage)
-        startImage = 1000;
+        startImage = 1;
     end
     
+    
     if isempty(finalImage)
-        if nFrames < 361000
-            finalImage = nFrames;
-        else
-            finalImage = 361000;
-        end
+        finalImage = nFrames;
     end
+    
+    fprintf(1,'Finding Median Image\n');
+    medianImage = findMedianImage(vidObj,medianImageNumber,startImage,finalImage);
     
         
     segmentationOptions.imageThreshold = imageThreshold;
-    segmentationOptions.cannyParameter = cannyParameter;
+    %segmentationOptions.cannyParameter = cannyParameter;
     segmentationOptions.dilateSize = dilateSize;
     segmentationOptions.minArea = minArea;
     segmentationOptions.spacing = spacing;
@@ -77,50 +82,52 @@ function [Xs,Ys,angles,areas,parameters,framesToCheck,svdskipped,areanorm] = ...
     segmentationOptions.segmentationOff = segmentationOff;
     segmentationOptions.asymThreshold = asymThreshold;
     segmentationOptions.symLine = symLine;
+    segmentationOptions.outputImageSize = outputImageSize;
+    segmentationOptions.medianImage = medianImage;
     
     
     %Area normalization and (possibly) bodyThreshold finding
     
-    idx = randi([startImage,nFrames],[parameters.areaNormalizationNumber,1]);
-    basisSize = sum(basisImage(:)>0);
-    s = size(basisImage);
-    currentImageSet = uint8(zeros(s(1),s(2),parameters.areaNormalizationNumber));
-    parfor i=1:length(idx)
-        currentImageSet(:,:,i) = read(vidObj,idx(i));
-    end
+    %     idx = randi([startImage,nFrames],[parameters.areaNormalizationNumber,1]);
+    %     basisSize = sum(basisImage(:)>0);
+    %     s = size(basisImage);
+    %     currentImageSet = uint8(zeros(s(1),s(2),parameters.areaNormalizationNumber));
+    %     parfor i=1:length(idx)
+    %         currentImageSet(:,:,i) = read(vidObj,idx(i));
+    %     end
+    %
+    %     if bodyThreshold < 0
+    %         T = zeros(length(idx),parameters.areaNormalizationNumber);
+    %         parfor i=1:length(idx)
+    %             [testImage,mask] = segmentImage_combo(currentImageSet(:,:,i),5,.05,[],[],[],1000,true);
+    %             if sum(mask(:)) > 1000
+    %                 II = testImage(testImage>0);
+    %                 T(i) = autoFindThreshold_gmm(II,3);
+    %             end
+    %         end
+    %
+    %         T = T(T>0);
+    %         bodyThreshold = quantile(T,.25);
+    %         parameters.bodyThreshold = bodyThreshold;
+    %
+    %     end
     
-    if bodyThreshold < 0   
-        T = zeros(length(idx),parameters.areaNormalizationNumber);
-        parfor i=1:length(idx)
-            [testImage,mask] = segmentImage_combo(currentImageSet(:,:,i),5,.05,[],[],[],1000,true);
-            if sum(mask(:)) > 1000
-                II = testImage(testImage>0);
-                T(i) = autoFindThreshold_gmm(II,3);
-            end
-        end
-        
-        T = T(T>0);
-        bodyThreshold = quantile(T,.25); 
-        parameters.bodyThreshold = bodyThreshold;
-         
-    end
+    
+    %     if parameters.asymThreshold < 0
+    %         parameters.asymThreshold = parameters.bodyThreshold;
+    %         asymThreshold = parameters.asymThreshold;
+    %     end
     
     
-    if parameters.asymThreshold < 0
-        parameters.asymThreshold = parameters.bodyThreshold;
-        asymThreshold = parameters.asymThreshold;
-    end
-            
-     
-    imageSizes = zeros(size(idx));
-    for j = 1:parameters.areaNormalizationNumber
-        a = currentImageSet(:,:,j);
-        imageSizes(j) = sum(imcomplement(a(:))>bodyThreshold);
-    end
-    imageSize = median(imageSizes);
-    areanorm = sqrt(basisSize/imageSize);
+    %     imageSizes = zeros(size(idx));
+    %     for j = 1:parameters.areaNormalizationNumber
+    %         a = currentImageSet(:,:,j);
+    %         imageSizes(j) = sum(imcomplement(a(:))>bodyThreshold);
+    %     end
+    %     imageSize = median(imageSizes);
+    %     areanorm = sqrt(basisSize/imageSize);
     
-        
+    
     if isempty(image_path)
         image_path   = input('Image Path = ?:  ', 's');
     end
@@ -130,12 +137,9 @@ function [Xs,Ys,angles,areas,parameters,framesToCheck,svdskipped,areanorm] = ...
         unix(['mkdir ' image_path]);
     end
     
-    if ~segmentationOff
-        referenceImage = segmentImage_combo(basisImage,dilateSize,...
-            cannyParameter,imageThreshold,[],[],minArea,true);
-    else
-        referenceImage = basisImage;
-    end
+    
+    referenceImage = basisImage;
+    
     
     [ii,~] = find(referenceImage > 0);
     minRangeValue = min(ii) - rangeExtension;

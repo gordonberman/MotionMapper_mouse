@@ -1,6 +1,8 @@
 function [outImage,centroid,upper_left_corner,threshold] = processMouseImage(...
                 image,backgroundImage,imageLength,threshold,imageThreshold,dilateSize,isAlbino)
 
+           
+    addpath(genpath('../utilities'));        
             
     minThreshold = 5;
     mirrorRange = 40;
@@ -14,12 +16,12 @@ function [outImage,centroid,upper_left_corner,threshold] = processMouseImage(...
     
     
     if nargin < 3 || isempty(imageLength)
-        imageLength = 151;
+        imageLength = 201;
     end
     
     
     if nargin < 4 || isempty(threshold)
-        if isAlbino
+        if ~isAlbino
             threshold = 50;
         else
             threshold = 5;
@@ -28,7 +30,7 @@ function [outImage,centroid,upper_left_corner,threshold] = processMouseImage(...
     
     
     if nargin < 5 || isempty(imageThreshold)
-        if isAlbino
+        if ~isAlbino
             imageThreshold = 150;
         else
             imageThreshold = 1;
