@@ -1,5 +1,6 @@
 function [outImage,centroid,upper_left_corner,threshold] = processMouseImage(...
-                image,backgroundImage,imageLength,threshold,imageThreshold,dilateSize,isAlbino)
+                image,backgroundImage,imageLength,threshold,imageThreshold,...
+                dilateSize,fmin,fmax,openSize,isAlbino)
 
            
     addpath(genpath('../utilities'));        
@@ -10,7 +11,7 @@ function [outImage,centroid,upper_left_corner,threshold] = processMouseImage(...
     backgroundImage = uint8(backgroundImage);
     image = uint8(image);
     
-    if nargin < 7 || isempty(isAlbino)
+    if nargin < 10 || isempty(isAlbino)
         isAlbino = false;
     end
     
@@ -41,6 +42,17 @@ function [outImage,centroid,upper_left_corner,threshold] = processMouseImage(...
         dilateSize = 3;
     end
     
+    if nargin < 7 
+        fmin = [];
+    end
+    
+    if nargin < 8 
+        fmax = [];
+    end
+    
+    if nargin < 9 
+        openSize = [];
+    end
     
     if isAlbino
         z = round(s(1)/2) + (-mirrorRange:mirrorRange);
@@ -137,8 +149,16 @@ function [outImage,centroid,upper_left_corner,threshold] = processMouseImage(...
         
         outImage = newImage(iRange,jRange);
         
-        
-        
+        if ~isempty(fmin) && ~isempty(fmax) && ~isempty(openSize) 
+            tempMask = outImage > fmin & outImage < fmax;
+            tempMask = imopen(tempMask,strel('square',openSize));
+            mask = outImage > 0;
+            mask(tempMask) = false;
+            mask = imdilate(mask,strel('disk',dilateSize));
+            mask = returnLargestConnectedComponentImage(mask);
+            mask = imfill(mask,'holes');
+            outImage(~mask) = 0;
+        end
         
     else
         

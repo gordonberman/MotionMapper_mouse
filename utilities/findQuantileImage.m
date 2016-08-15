@@ -1,11 +1,15 @@
-function medianImage = findMedianImage(vidObj,N,firstFrame,lastFrame)
+function [medianImage,images] = findQuantileImage(vidObj,N,quantileValue,firstFrame,lastFrame)
+
+    if nargin < 3 || isempty(quantileValue)
+        quantileValue = .25;
+    end
 
     N = min(N,vidObj.NumberOfFrames);
-    if nargin < 3 || isempty(firstFrame)
+    if nargin < 4 || isempty(firstFrame)
         firstFrame = 1;
     end
     
-    if nargin < 4 || isempty(lastFrame)
+    if nargin < 5 || isempty(lastFrame)
         lastFrame = vidObj.NumberOfFrames;
     end
 
@@ -30,4 +34,6 @@ function medianImage = findMedianImage(vidObj,N,firstFrame,lastFrame)
         
     end
     
-    medianImage = median(images,3);
+    
+    
+    medianImage = quantile(images,quantileValue,3);

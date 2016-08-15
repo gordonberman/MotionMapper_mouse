@@ -217,12 +217,12 @@ function outputStruct = ...%[Xs,Ys,angles,areas,parameters,framesToCheck,svdskip
         alignmentFiles{i} = VideoWriter([image_path '/' qq '.avi']);
     end
     
-    
     x1s = zeros(numProcessors,1);
     y1s = zeros(numProcessors,1);
     angle1s = zeros(numProcessors,1);
     area1s = zeros(numProcessors,1);
-    svdskip1s = zeros(numProcessors,1);   
+    svdskip1s = zeros(numProcessors,1);
+    
     currentPhis = zeros(numProcessors,1);
     
     
@@ -267,7 +267,7 @@ function outputStruct = ...%[Xs,Ys,angles,areas,parameters,framesToCheck,svdskip
             images{j} = aligned_0;
             area1s(j) = sum(aligned_0(:) > 0);
             currentPhis(j) = angle_0;
-            svdskip1s(j) = area1s(j) == 0;
+            svdskip1s(j) = double(area1s(j) > 0);
             x1s(j) = x_0;
             y1s(j) = y_0;
             angle1s(j) = angle_0;
@@ -277,7 +277,7 @@ function outputStruct = ...%[Xs,Ys,angles,areas,parameters,framesToCheck,svdskip
             images{j} = aligned_180;
             area1s(j) = sum(aligned_180(:) > 0);
             currentPhis(j) = angle_180;
-            svdskip1s(j) = area1s(j) == 0;
+            svdskip1s(j) = area1s(j) == 0);
             x1s(j) = x_180;
             y1s(j) = y_180;
             angle1s(j) = angle_180;
@@ -287,7 +287,97 @@ function outputStruct = ...%[Xs,Ys,angles,areas,parameters,framesToCheck,svdskip
         
     end
         
-   
+        
+    %     images = cell(numProcessors,1);
+    %     for j=1:numProcessors
+    %
+    %         fprintf(1,'Finding initial orientation for processor #%2i\n',j);
+    %
+    %         i = groupings{j}(1);
+    %
+    %         originalImage = read(vidObj,i);
+    %         if length(size(originalImage)) == 3
+    %             originalImage = originalImage(:,:,1);
+    %         end
+    %
+    %         if ~segmentationOff
+    %             imageOut = segmentImage_combo(originalImage,dilateSize,cannyParameter,...
+    %                 imageThreshold,[],[],minArea,true);
+    %             imageOut = rescaleImage(imageOut,areanorm);
+    %         else
+    %             imageOut = originalImage;
+    %             imageOut = rescaleImage(imageOut,areanorm);
+    %         end
+    %
+    %         imageOut2 = imageOut;
+    %         imageOut2(imageOut2 < asymThreshold) = 0;
+    %
+    %         if max(imageOut2(:)) ~= 0
+    %
+    %             [angle1s(j),x1s(j),y1s(j),~,~,image] = ...
+    %                 alignTwoImages(referenceImage,imageOut2,initialPhi,spacing,pixelTol,false,imageOut);
+    %
+    %
+    %             s = size(image);
+    %             b = image;
+    %             b(b > asymThreshold) = 0;
+    %             if minRangeValue > 1
+    %                 b(1:minRangeValue-1,:) = 0;
+    %             end
+    %             if maxRangeValue < length(referenceImage(:,1))
+    %                 b(maxRangeValue+1:end,:) = 0;
+    %             end
+    %
+    %
+    %             q = sum(b) ./ sum(b(:));
+    %             asymValue = symLine - sum(q.*(1:s(1)));
+    %
+    %
+    %             if asymValue < 0
+    %
+    %                 initialPhi = mod(initialPhi+180,360);
+    %
+    %                 [tempAngle,tempX,tempY,~,~,tempImage] = ...
+    %                     alignTwoImages(referenceImage,imageOut2,initialPhi,spacing,pixelTol,false,imageOut);
+    %
+    %                 b = tempImage;
+    %                 b(b > asymThreshold) = 0;
+    %                 if minRangeValue > 1
+    %                     b(1:minRangeValue-1,:) = 0;
+    %                 end
+    %                 if maxRangeValue < length(referenceImage(:,1))
+    %                     b(maxRangeValue+1:end,:) = 0;
+    %                 end
+    %
+    %                 q = sum(b>0)./sum(b(:)>0);
+    %                 asymValue2 = symLine - sum(q.*(1:s(1)));
+    %
+    %                 if asymValue2 > asymValue
+    %                     angle1s(j) = tempAngle;
+    %                     x1s(j) = tempX;
+    %                     y1s(j) = tempY;
+    %                     image = tempImage;
+    %                 end
+    %
+    %             end
+    %
+    %             area1s(j) = sum(imageOut(:) ~= 0);
+    %             currentPhis(j) = angle1s(j);
+    %             images{j} = image;
+    %             svdskip1s(j) = 0;
+    %
+    %         else
+    %
+    %             area1s(j) = sum(imageOut(:) ~= 0);
+    %             currentPhis(j) = initialPhi;
+    %             angle1s(j) = initialPhi;
+    %             svdskip1s(j) = 1;
+    %             image = uint8(zeros(size(imageOut2)));
+    %             images{j} = image;
+    %
+    %         end
+    %
+    %     end
     
     
     fprintf(1,'Aligning Images\n');

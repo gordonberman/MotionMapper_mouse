@@ -72,12 +72,22 @@ function parameters = setRunParameters(parameters)
     rangeExtension = 20;
     
     %path to basis image
-    basisImagePath = 'segmentation_alignment/basisImage.tiff';
+    basisImagePath = 'segmentation_alignment/mouseBasisImage.tiff';
     
     %number of images to use in order to find a video's median image
     medianImageNumber = 1000;
     
+    %quantile value for background image determination
+    backgroundImageQuantile = .75;
     
+    %Toggle switch whether the mouse is black or albino
+    isAlbino = false;
+    
+    %Threshold for image processing over background image
+    aboveBackgroundThreshold = 50;
+    
+    %Morphological opening size used during shadow segmentation
+    openSize = 5;
     
     
     %%%%%%%% PCA Parameters %%%%%%%% 
@@ -299,9 +309,22 @@ function parameters = setRunParameters(parameters)
     end
 
 
+    if ~isfield(parameters,'backgroundImageQuantile') || isempty(parameters.backgroundImageQuantile)
+        parameters.backgroundImageQuantile = backgroundImageQuantile;
+    end
 
+    if ~isfield(parameters,'isAlbino') || isempty(parameters.isAlbino)
+        parameters.isAlbino = isAlbino;
+    end
+
+    if ~isfield(parameters,'aboveBackgroundThreshold') || isempty(parameters.aboveBackgroundThreshold)
+        parameters.aboveBackgroundThreshold = aboveBackgroundThreshold;
+    end
     
-
+    if ~isfield(parameters,'openSize') || isempty(parameters.openSize)
+        parameters.openSize = openSize;
+    end
+    
     
     
 
