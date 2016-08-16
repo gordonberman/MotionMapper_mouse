@@ -15,8 +15,8 @@ function outputStruct = runAlignment(fileName,outputPath,startImage,finalImage,p
 %
 %       outputStruct -> struct containing found alignment variables
 %
-% (C) Gordon J. Berman, 2014
-%     Princeton University
+% (C) Gordon J. Berman, 2016
+%     Emory University
 
 
     addpath(genpath('./utilities/'));
@@ -43,37 +43,67 @@ function outputStruct = runAlignment(fileName,outputPath,startImage,finalImage,p
     end
     
     parameters = setRunParameters(parameters);
+    numProcessors = parameters.numProcessors;
     
+    p = gcp('nocreate');
+    c = parcluster;
+    numAvailableProcessors = c.NumWorkers;
     
-    if matlabpool('size') ~= parameters.numProcessors;
-        matlabpool close force
-        if parameters.numProcessors > 1
-            matlabpool(parameters.numProcessors);
+    if numProcessors > 1 && isempty(p)
+     
+        if numAvailableProcessors > numProcessors
+            numProcessors = numAvailableProcessors;
+            parameters.numProcessors = numAvailableProcessors;
         end
+        
+        if numProcessors > 1
+            p = parpool(numProcessors);
+        end
+        
+        
+    else
+        
+        if numProcessors > 1
+            currentNumProcessors = p.NumWorkers;
+            numProcessors = min([numProcessors,numAvailableProcessors]);
+            if numProcessors ~= currentNumProcessors
+                delete(p);
+                p = parpool(numProcessors); 
+            end
+        end
+        
     end
+        
+    
+    %     if matlabpool('size') ~= parameters.numProcessors;
+    %         matlabpool close force
+    %         if parameters.numProcessors > 1
+    %             matlabpool(parameters.numProcessors);
+    %         end
+    %     end
     
     
-    [Xs,Ys,angles,areas,~,framesToCheck,svdskipped,areanorm] = ...
+    outputStruct = ...
         alignImages_Radon_parallel_avi(fileName,startImage,finalImage,...
                                         outputPath,parameters);
     
-    
-    %See alignImages_Radon_parallel_avi for definitions of these variables                                
-    outputStruct.Xs = Xs;
-    outputStruct.Ys = Ys;
-    outputStruct.angles = angles;
-    outputStruct.areas = areas;
     outputStruct.parameters = parameters;
-    outputStruct.framesToCheck = framesToCheck;
-    outputStruct.svdskipped = svdskipped;
-    outputStruct.areanorm = areanorm;
+                                    
+                                    
+    %See alignImages_Radon_parallel_avi for definitions of these variables                                
+    %     outputStruct.Xs = Xs;
+    %     outputStruct.Ys = Ys;
+    %     outputStruct.angles = angles;
+    %     outputStruct.areas = areas;
+
+    %     outputStruct.framesToCheck = framesToCheck;
+    %     outputStruct.svdskipped = svdskipped;
+    %     outputStruct.areanorm = areanorm;
     
     
-    if parameters.numProcessors > 1 && parameters.closeMatPool
-        matlabpool close
+    if ~isempty(p) && parameters.closeMatPool
+        delete(p);
     end
-    
-    
     
     
     

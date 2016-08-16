@@ -32,13 +32,13 @@ function outputStruct = ...%[Xs,Ys,angles,areas,parameters,framesToCheck,svdskip
     
     
     readout = 100;
-    nDigits = 8;
+    %nDigits = 8;
     
     spacing = parameters.alignment_angle_spacing;
     pixelTol = parameters.pixelTol;
     %minArea = parameters.minArea;
-    asymThreshold = parameters.asymThreshold;
-    symLine = parameters.symLine;
+    %asymThreshold = parameters.asymThreshold;
+    %symLine = parameters.symLine;
     %initialPhi = parameters.initialPhi;
     dilateSize = parameters.dilateSize;
     %cannyParameter = parameters.cannyParameter;
@@ -97,14 +97,15 @@ function outputStruct = ...%[Xs,Ys,angles,areas,parameters,framesToCheck,svdskip
     segmentationOptions.pixelTol = pixelTol;
     %segmentationOptions.maxAreaDifference = maxAreaDifference;
     %segmentationOptions.segmentationOff = segmentationOff;
-    segmentationOptions.asymThreshold = asymThreshold;
-    segmentationOptions.symLine = symLine;
+    %segmentationOptions.asymThreshold = asymThreshold;
+    %segmentationOptions.symLine = symLine;
     segmentationOptions.outputImageSize = outputImageSize;
     segmentationOptions.backgroundImage = backgroundImage;
     segmentationOptions.isAlbino = isAlbino;
     segmentationOptions.openSize = openSize;
     segmentationOptions.backgroundImage = backgroundImage;
     segmentationOptions.aboveBackgroundThreshold = aboveBackgroundThreshold;
+    segmentationOptions.imageLength = imageLength;
     
     
     %Find segmenatation parameters
@@ -213,8 +214,8 @@ function outputStruct = ...%[Xs,Ys,angles,areas,parameters,framesToCheck,svdskip
     fDigits = ceil(log10(numProcessors+1e-10));
     for i=1:numProcessors
         qq = num2str(i);
-        qq = [repmat('0',1,fDigits - length(qq)) qq];
-        alignmentFiles{i} = VideoWriter([image_path '/' qq '.avi']);
+        qq2 = [repmat('0',1,fDigits - length(qq)) qq];
+        alignmentFiles{i} = VideoWriter([image_path '/' qq2 '.avi']);
     end
     
     
@@ -224,7 +225,8 @@ function outputStruct = ...%[Xs,Ys,angles,areas,parameters,framesToCheck,svdskip
     area1s = zeros(numProcessors,1);
     svdskip1s = zeros(numProcessors,1);   
     currentPhis = zeros(numProcessors,1);
-    
+    centroid1s = zeros(numProcessors,2);
+    ULC1s = zeros(numProcessors,2);
     
     %initialize First Images
     
@@ -237,9 +239,10 @@ function outputStruct = ...%[Xs,Ys,angles,areas,parameters,framesToCheck,svdskip
             originalImage = originalImage(:,:,1);
         end
         
-        imageOut =  processMouseImage(originalImage,backgroundImage,...
+        [imageOut,centroid1s(j,:),ULC1s(j,:)] =  ...
+            processMouseImage(originalImage,backgroundImage,...
                         imageLength,aboveBackgroundThreshold,...
-                        imageThreshold,dilateSize,fmin,fmax,openSize,isAlbino);
+                        imageThreshold,dilateSize,fmin,fmax,openSize,isAlbino);                   
                     
         [angle_0,x_0,y_0,aligned_0] = ...
             alignTwoImages(referenceImage,imageOut,0,spacing,pixelTol,false,imageOut);          
@@ -262,7 +265,7 @@ function outputStruct = ...%[Xs,Ys,angles,areas,parameters,framesToCheck,svdskip
             x2 = [-1 -1];
         end
         
-        if x1(1) < x2(1) && x1(1) > 0   
+        if (x1(1) < x2(1) && x1(1) > 0) || (x1(1) > 0 && x2(1) < 0)   
             
             images{j} = aligned_0;
             area1s(j) = sum(aligned_0(:) > 0);
@@ -292,39 +295,47 @@ function outputStruct = ...%[Xs,Ys,angles,areas,parameters,framesToCheck,svdskip
     
     fprintf(1,'Aligning Images\n');
     
-    tic
     Xs_temp = cell(numProcessors,1);
     Ys_temp = cell(numProcessors,1);
     Angles_temp = cell(numProcessors,1);
     Areas_temp = cell(numProcessors,1);
     svdskips_temp = cell(numProcessors,1);
+    centroids_temp = cell(numProcessors,1);
+    upper_left_corners_temp = cell(numProcessors,1);
     
     
     parfor i=1:numProcessors
         
-        [Xs_temp{i},Ys_temp{i},Angles_temp{i},Areas_temp{i},svdskips_temp{i}] = ...
-            align_subroutine_parallel_avi(groupings{i},currentPhis(i),...
-            segmentationOptions,nDigits,file_path,alignmentFiles{i},readout,i,...
-            asymThreshold,area1s(i),vidObj,[],areanorm,images{i});
+        %[Xs_temp{i},Ys_temp{i},Angles_temp{i},Areas_temp{i},svdskips_temp{i}] = ...
+        %    align_subroutine_parallel_avi(groupings{i},currentPhis(i),...
+        %    segmentationOptions,nDigits,file_path,alignmentFiles{i},readout,i,...
+        %    asymThreshold,area1s(i),vidObj,[],areanorm,images{i});
         
-        
+        [Xs_temp{i},Ys_temp{i},Angles_temp{i},Areas_temp{i},...
+            svdskips_temp{i},centroids_temp{i},upper_left_corners_temp{i}] = ...
+        align_subroutine_parallel_avi(groupings{i},currentPhis(i),segmentationOptions,...
+                alignmentFiles{i},readout,i,vidObj,areanorm,images{i});
         
         Xs_temp{i}(1) = x1s(i);
         Ys_temp{i}(1) = y1s(i);
         Areas_temp{i}(1) = area1s(i);
         Angles_temp{i}(1) = angle1s(i);
         svdskips_temp{i}(1) = svdskip1s(i);
+        centroids_temp{i}(1,:) = centroid1s(i,:);
+        upper_left_corners_temp{i}(1,:) = ULC1s(i,:);
         
         close(alignmentFiles{i});   
         
     end
     
     
-    outputStruct.Xs = combineCells(Xs_temp);
-    outputStruct.Ys = combineCells(Ys_temp);
-    outputStruct.angles = combineCells(Angles_temp);
-    outputStruct.areas = combineCells(Areas_temp);
-    outputStruct.svdskips = combineCells(svdskips_temp);
+    outputStruct.Xs = cell2mat(Xs_temp);
+    outputStruct.Ys = cell2mat(Ys_temp);
+    outputStruct.angles = cell2mat(Angles_temp);
+    outputStruct.areas = cell2mat(Areas_temp);
+    outputStruct.svdskips = cell2mat(svdskips_temp);
+    outputStruct.upper_left_corners = cell2mat(upper_left_corners_temp);
+    outputStruct.centroids = cell2mat(centroids_temp);
     
         
     
