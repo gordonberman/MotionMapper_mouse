@@ -36,19 +36,19 @@ function outputStruct = ...%[Xs,Ys,angles,areas,parameters,framesToCheck,svdskip
     
     spacing = parameters.alignment_angle_spacing;
     pixelTol = parameters.pixelTol;
-    minArea = parameters.minArea;
+    %minArea = parameters.minArea;
     asymThreshold = parameters.asymThreshold;
     symLine = parameters.symLine;
-    initialPhi = parameters.initialPhi;
+    %initialPhi = parameters.initialPhi;
     dilateSize = parameters.dilateSize;
     %cannyParameter = parameters.cannyParameter;
     imageThreshold = parameters.imageThreshold;
     %maxAreaDifference = parameters.maxAreaDifference;
-    segmentationOff = false;
+    %segmentationOff = false;
     basisImage = imread(parameters.basisImagePath);
     %bodyThreshold = parameters.bodyThreshold;
     numProcessors = parameters.numProcessors;
-    rangeExtension = parameters.rangeExtension;
+    %rangeExtension = parameters.rangeExtension;
     backgroundImageQuantile = parameters.backgroundImageQuantile;
     
     isAlbino = parameters.isAlbino;
