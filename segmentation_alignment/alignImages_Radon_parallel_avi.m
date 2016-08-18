@@ -1,5 +1,4 @@
-function outputStruct = ...%[Xs,Ys,angles,areas,parameters,framesToCheck,svdskipped,backgroundImage] = ...
-    alignImages_Radon_parallel_avi(file_path,startImage,finalImage,image_path,parameters)
+function outputStruct = alignImages_Radon_parallel_avi(file_path,startImage,finalImage,image_path,parameters)
 %alignImages_Radon_parallel_avi runs the alignment and segmentation routines on a .avi file
 %   and saves the output files to a directorty (called by ../runAlignment.m)
 %
@@ -14,15 +13,7 @@ function outputStruct = ...%[Xs,Ys,angles,areas,parameters,framesToCheck,svdskip
 %
 %   Output variables:
 %
-%       Xs -> alignment x translations
-%       Ys -> alignment y translations
-%       angles -> alignment rotations
-%       areas -> segmented areas after segmentation
-%       framesToCheck -> frames where a large rotation occurs in a single 
-%                           frame.  This might signal a 180 degree rotation
-%                           error
-%       svdskipped -> blank frames where alignment is skipped
-%       backgroundImage -> background image used in image processing
+%       ouputStruct -> struct containing output variables
 %
 % (C) Gordon J. Berman, 2016
 %     Emory University
@@ -32,34 +23,22 @@ function outputStruct = ...%[Xs,Ys,angles,areas,parameters,framesToCheck,svdskip
     
     
     readout = 100;
-    %nDigits = 8;
     
     spacing = parameters.alignment_angle_spacing;
     pixelTol = parameters.pixelTol;
-    %minArea = parameters.minArea;
-    %asymThreshold = parameters.asymThreshold;
-    %symLine = parameters.symLine;
-    %initialPhi = parameters.initialPhi;
     dilateSize = parameters.dilateSize;
-    %cannyParameter = parameters.cannyParameter;
     imageThreshold = parameters.imageThreshold;
-    %maxAreaDifference = parameters.maxAreaDifference;
-    %segmentationOff = false;
     basisImage = imread(parameters.basisImagePath);
-    %bodyThreshold = parameters.bodyThreshold;
     numProcessors = parameters.numProcessors;
-    %rangeExtension = parameters.rangeExtension;
     backgroundImageQuantile = parameters.backgroundImageQuantile;
-    
+    maxNumImagesToLoad = parameters.maxNumImagesToLoad;
     isAlbino = parameters.isAlbino;
     medianImageNumber = parameters.medianImageNumber;
     outputImageSize = parameters.outputImageSize;
     aboveBackgroundThreshold = parameters.aboveBackgroundThreshold;
     openSize = parameters.openSize;
     
-    
-    %imageLength,threshold,imageThreshold,dilateSize,isAlbino
-    
+
     %Choose starting and finishing images
     
     vidObj = VideoReader(file_path);
@@ -90,23 +69,16 @@ function outputStruct = ...%[Xs,Ys,angles,areas,parameters,framesToCheck,svdskip
     
     
     segmentationOptions.imageThreshold = imageThreshold;
-    %segmentationOptions.cannyParameter = cannyParameter;
     segmentationOptions.dilateSize = dilateSize;
-    %segmentationOptions.minArea = minArea;
     segmentationOptions.spacing = spacing;
     segmentationOptions.pixelTol = pixelTol;
-    %segmentationOptions.maxAreaDifference = maxAreaDifference;
-    %segmentationOptions.segmentationOff = segmentationOff;
-    %segmentationOptions.asymThreshold = asymThreshold;
-    %segmentationOptions.symLine = symLine;
     segmentationOptions.outputImageSize = outputImageSize;
     segmentationOptions.backgroundImage = backgroundImage;
     segmentationOptions.isAlbino = isAlbino;
     segmentationOptions.openSize = openSize;
     segmentationOptions.backgroundImage = backgroundImage;
     segmentationOptions.aboveBackgroundThreshold = aboveBackgroundThreshold;
-    segmentationOptions.imageLength = imageLength;
-    
+    segmentationOptions.maxNumImagesToLoad = maxNumImagesToLoad;
     
     %Find segmenatation parameters
     fprintf(1,'Finding Segmentation Parameters\n');
@@ -114,7 +86,7 @@ function outputStruct = ...%[Xs,Ys,angles,areas,parameters,framesToCheck,svdskip
     testSegmentedImages = zeros(outputImageSize,outputImageSize,medianImageNumber);
     for i=1:medianImageNumber
         [testSegmentedImages(:,:,i),~,~,~] = processMouseImage(...
-                testImages(:,:,i),backgroundImage,imageLength,...
+                testImages(:,:,i),backgroundImage,outputImageSize,...
                 aboveBackgroundThreshold,imageThreshold,dilateSize,...
                 [],[],[],isAlbino);
     end
@@ -122,7 +94,7 @@ function outputStruct = ...%[Xs,Ys,angles,areas,parameters,framesToCheck,svdskip
     
     q = double(testSegmentedImages(testSegmentedImages > 0));
     if length(q) > 50000
-        q = q(radnperm(length(q),50000));
+        q = q(randperm(length(q),50000));
     end
     obj = gmixPlot(q,3,[],[],true,false,[],[],3);
     qq = linspace(0,255,10000);
@@ -130,9 +102,9 @@ function outputStruct = ...%[Xs,Ys,angles,areas,parameters,framesToCheck,svdskip
     [~,a] = sort(obj.mu);
     b = a(2);
     posts = posts(:,b);
-    f = fit(qq',posts(:,b),'linearinterp');
-    f0=qq(find(posts(:,b) > .5 & qq' > obj.mu(a(1)),1,'first'));
-    f02=qq(find(posts(:,b) > .5 & qq' < obj.mu(a(3)),1,'last'));
+    f = fit(qq',posts,'linearinterp');
+    f0=qq(find(posts > .5 & qq' > obj.mu(a(1)),1,'first'));
+    f02=qq(find(posts > .5 & qq' < obj.mu(a(3)),1,'last'));
     fmin = fzero(@(x) f(x)-.5,f0);
     fmax = fzero(@(x) f(x)-.5,f02);
     
@@ -142,11 +114,12 @@ function outputStruct = ...%[Xs,Ys,angles,areas,parameters,framesToCheck,svdskip
     outputStruct.fmin = fmin;
     outputStruct.fmax = fmax;
     outputStruct.openSize = openSize;
+    outputStruct.pixel_GMM = obj;
     
     testAreas = zeros(medianImageNumber,1);
     for i=1:medianImageNumber
         [testSegmentedImages(:,:,i),~,~,~] = processMouseImage(...
-            testImages(:,:,i),backgroundImage,imageLength,...
+            testImages(:,:,i),backgroundImage,outputImageSize,...
             aboveBackgroundThreshold,imageThreshold,dilateSize,...
             fmin,fmax,openSize,isAlbino);
         testAreas(i) = sum(sum(testSegmentedImages(:,:,i) > fmax));
@@ -170,19 +143,10 @@ function outputStruct = ...%[Xs,Ys,angles,areas,parameters,framesToCheck,svdskip
     
     
     referenceImage = basisImage;
-    
-    
-    %     [ii,~] = find(referenceImage > 0);
-    %     minRangeValue = min(ii) - rangeExtension;
-    %     maxRangeValue = max(ii) + rangeExtension;
-    
     segmentationOptions.referenceImage = referenceImage;
-    %     segmentationOptions.minRangeValue = minRangeValue;
-    %     segmentationOptions.maxRangeValue = maxRangeValue;
-    
-    
-    
-    %define groupings
+
+ 
+    %Define groupings
     imageVals = startImage:finalImage;
     numImages = length(imageVals);
     minNumPer = floor(numImages / numProcessors+1e-20);
@@ -198,7 +162,7 @@ function outputStruct = ...%[Xs,Ys,angles,areas,parameters,framesToCheck,svdskip
             count = count + minNumPer;
         end
     end
-
+    
     
     
     % Write Out Grouping Start and Finish indices
@@ -241,7 +205,7 @@ function outputStruct = ...%[Xs,Ys,angles,areas,parameters,framesToCheck,svdskip
         
         [imageOut,centroid1s(j,:),ULC1s(j,:)] =  ...
             processMouseImage(originalImage,backgroundImage,...
-                        imageLength,aboveBackgroundThreshold,...
+                        outputImageSize,aboveBackgroundThreshold,...
                         imageThreshold,dilateSize,fmin,fmax,openSize,isAlbino);                   
                     
         [angle_0,x_0,y_0,aligned_0] = ...
@@ -304,12 +268,7 @@ function outputStruct = ...%[Xs,Ys,angles,areas,parameters,framesToCheck,svdskip
     upper_left_corners_temp = cell(numProcessors,1);
     
     
-    parfor i=1:numProcessors
-        
-        %[Xs_temp{i},Ys_temp{i},Angles_temp{i},Areas_temp{i},svdskips_temp{i}] = ...
-        %    align_subroutine_parallel_avi(groupings{i},currentPhis(i),...
-        %    segmentationOptions,nDigits,file_path,alignmentFiles{i},readout,i,...
-        %    asymThreshold,area1s(i),vidObj,[],areanorm,images{i});
+    for i=1:numProcessors
         
         [Xs_temp{i},Ys_temp{i},Angles_temp{i},Areas_temp{i},...
             svdskips_temp{i},centroids_temp{i},upper_left_corners_temp{i}] = ...
@@ -339,7 +298,7 @@ function outputStruct = ...%[Xs,Ys,angles,areas,parameters,framesToCheck,svdskip
     
         
     
-    x = abs(diff(unwrap(angles.*pi/180).*180/pi));
+    x = abs(diff(unwrap(outputStruct.angles.*pi/180).*180/pi));
     outputStruct.framesToCheck = find(x > 90) + 1;
     outputStruct.svdskipped = find(outputStruct.svdskips == 1);
     

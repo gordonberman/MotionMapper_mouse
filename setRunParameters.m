@@ -4,8 +4,8 @@ function parameters = setRunParameters(parameters)
 %       default values.
 %
 %
-% (C) Gordon J. Berman, 2014
-%     Princeton University
+% (C) Gordon J. Berman, 2016
+%     Emory University
 
 
     if nargin < 1
@@ -88,6 +88,13 @@ function parameters = setRunParameters(parameters)
     
     %Morphological opening size used during shadow segmentation
     openSize = 5;
+    
+    %Size for created images
+    outputImageSize = 201;
+    
+    %Maximum number of parameters to load into memory during alignment
+    %subroutine
+    maxNumImagesToLoad = 5000;
     
     
     %%%%%%%% PCA Parameters %%%%%%%% 
@@ -323,6 +330,14 @@ function parameters = setRunParameters(parameters)
     
     if ~isfield(parameters,'openSize') || isempty(parameters.openSize)
         parameters.openSize = openSize;
+    end
+    
+    if ~isfield(parameters,'outputImageSize') || isempty(parameters.outputImageSize)
+        parameters.outputImageSize = outputImageSize;
+    end
+    
+    if ~isfield(parameters,'maxNumImagesToLoad') || isempty(parameters.maxNumImagesToLoad)
+        parameters.maxNumImagesToLoad = maxNumImagesToLoad;
     end
     
     

@@ -1,7 +1,12 @@
 function [outImage,centroid,upper_left_corner,threshold] = processMouseImage(...
                 image,backgroundImage,imageLength,threshold,imageThreshold,...
                 dilateSize,fmin,fmax,openSize,isAlbino)
-
+%processMouseImage takes and image, finds a region containing a mouse, and
+%           segments the mouse from the background
+%
+%
+% (C) Gordon J. Berman, 2016
+%     Emory University
            
     addpath(genpath('../utilities'));        
             

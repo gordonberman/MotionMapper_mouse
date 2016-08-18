@@ -43,7 +43,7 @@ function outputStruct = runAlignment(fileName,outputPath,startImage,finalImage,p
     end
     
     parameters = setRunParameters(parameters);
-    numProcessors = parameters.numProcessors;
+    numProcessors = 1;%parameters.numProcessors;
     
     p = gcp('nocreate');
     c = parcluster;
@@ -75,13 +75,6 @@ function outputStruct = runAlignment(fileName,outputPath,startImage,finalImage,p
     end
         
     
-    %     if matlabpool('size') ~= parameters.numProcessors;
-    %         matlabpool close force
-    %         if parameters.numProcessors > 1
-    %             matlabpool(parameters.numProcessors);
-    %         end
-    %     end
-    
     
     outputStruct = ...
         alignImages_Radon_parallel_avi(fileName,startImage,finalImage,...
@@ -89,16 +82,6 @@ function outputStruct = runAlignment(fileName,outputPath,startImage,finalImage,p
     
     outputStruct.parameters = parameters;
                                     
-                                    
-    %See alignImages_Radon_parallel_avi for definitions of these variables                                
-    %     outputStruct.Xs = Xs;
-    %     outputStruct.Ys = Ys;
-    %     outputStruct.angles = angles;
-    %     outputStruct.areas = areas;
-
-    %     outputStruct.framesToCheck = framesToCheck;
-    %     outputStruct.svdskipped = svdskipped;
-    %     outputStruct.areanorm = areanorm;
     
     
     if ~isempty(p) && parameters.closeMatPool
