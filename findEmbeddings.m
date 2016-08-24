@@ -32,44 +32,72 @@ function [zValues,outputStatistics] = ...
     
     
     
-    if matlabpool('size') ~= parameters.numProcessors;
-        matlabpool close force
-        if parameters.numProcessors > 1
-            matlabpool(parameters.numProcessors);
+    %     if matlabpool('size') ~= parameters.numProcessors;
+    %         matlabpool close force
+    %         if parameters.numProcessors > 1
+    %             matlabpool(parameters.numProcessors);
+    %         end
+    %     end
+    
+    numProcessors = parameters.numProcessors;
+    p = gcp('nocreate');
+    c = parcluster;
+    numAvailableProcessors = c.NumWorkers;
+    
+    if numProcessors > 1 && isempty(p)
+     
+        if numAvailableProcessors > numProcessors
+            numProcessors = numAvailableProcessors;
+            parameters.numProcessors = numAvailableProcessors;
         end
-    end
-    
-    
-    
-    d = length(trainingData(1,:));
-    numModes = parameters.pcaModes;
-    numPeriods = parameters.numPeriods;
-    
-    if d == numModes*numPeriods
         
-        data = projections;
-        data(:) = bsxfun(@rdivide,data,sum(data,2));
+        if numProcessors > 1
+            p = parpool(numProcessors);
+        end
         
-        minT = 1 ./ parameters.maxF;
-        maxT = 1 ./ parameters.minF;
-        Ts = minT.*2.^((0:numPeriods-1).*log(maxT/minT)/(log(2)*(numPeriods-1)));
-        f = fliplr(1./Ts);
         
     else
         
-        fprintf(1,'Finding Wavelets\n');
-        [data,f] = findWavelets(projections,numModes,parameters);
-        data(:) = bsxfun(@rdivide,data,sum(data,2));
+        if numProcessors > 1
+            currentNumProcessors = p.NumWorkers;
+            numProcessors = min([numProcessors,numAvailableProcessors]);
+            if numProcessors ~= currentNumProcessors
+                delete(p);
+                p = parpool(numProcessors); 
+            end
+        end
         
     end
     
+    
+    %d = length(trainingData(1,:));
+    numModes = parameters.pcaModes;
+    %numPeriods = parameters.numPeriods;
+    
+    %     if d == numModes*numPeriods
+    %
+    %         data = projections;
+    %         data(:) = bsxfun(@rdivide,data,sum(data,2));
+    %
+    %         minT = 1 ./ parameters.maxF;
+    %         maxT = 1 ./ parameters.minF;
+    %         Ts = minT.*2.^((0:numPeriods-1).*log(maxT/minT)/(log(2)*(numPeriods-1)));
+    %         f = fliplr(1./Ts);
+    %
+    %     else
+    
+    fprintf(1,'Finding Wavelets\n');
+    [data,f] = findWavelets(projections,numModes,parameters);
+    data(:) = bsxfun(@rdivide,data,sum(data,2));
+    
+    %     end
     fprintf(1,'Finding Embeddings\n');
     [zValues,zCosts,zGuesses,inConvHull,meanMax,exitFlags] = ...
         findTDistributedProjections_fmin(data,trainingData,...
-                                    trainingEmbedding,parameters);
+        trainingEmbedding,parameters);
     
     
-                                
+    
     outputStatistics.zCosts = zCosts;
     outputStatistics.f = f;
     outputStatistics.numModes = numModes;
@@ -80,8 +108,10 @@ function [zValues,outputStatistics] = ...
     
     
                                 
-                                
+    if ~isempty(p) && parameters.closeMatPool
+        delete(p);
+    end                            
     
-    if parameters.numProcessors > 1  && parameters.closeMatPool
-        matlabpool close
-    end
+    %     if parameters.numProcessors > 1  && parameters.closeMatPool
+    %         matlabpool close
+    %     end

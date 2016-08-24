@@ -2,10 +2,12 @@
 %%found in filePath
 
 %Place path to folder containing example .avi files here
-filePath = '';
+%filePath = '/Users/gberman/Dropbox/Data/MotionMapper/Sample_KumarLab_Videos/2016-06-01_LL1-3_101045-M-MP14-10-42430-3-S169.avi';
+filePath = '/Users/gberman/Desktop/mouse_test/';
 
 %add utilities folder to path
 addpath(genpath('./utilities/'));
+load('saved_colormaps','cc','cc2')
 
 %find all avi files in 'filePath'
 imageFiles = findAllImagesInFolders(filePath,'.avi');
@@ -13,8 +15,10 @@ L = length(imageFiles);
 numZeros = ceil(log10(L+1e-10));
 
 %define any desired parameter changes here
-parameters.samplingFreq = 100;
-parameters.trainingSetSize = 5000;
+parameters.samplingFreq = 30;
+parameters.trainingSetSize = 10000;
+parameters.minF = parameters.samplingFreq / 100;
+parameters.maxF = parameters.samplingFreq / 2;
 
 %initialize parameters
 parameters = setRunParameters(parameters);
@@ -69,9 +73,10 @@ vecs = vecs(:,1:parameters.numProjections);
 
 figure
 makeMultiComponentPlot_radon_fromVecs(vecs(:,1:25),25,thetas,pixels,[201 90]);
-caxis([-3e-3 3e-3])
+caxis([-2e-3 2e-3])
 colorbar
 title('First 25 Postural Eigenmodes','fontsize',14,'fontweight','bold');
+colormap(cc2)
 drawnow;
 
 
@@ -178,8 +183,11 @@ end
 
 
 
-
-matlabpool close
+p = gcp();
+if ~isempty(p)
+    delete(p);
+end
+%matlabpool close
 
 
 

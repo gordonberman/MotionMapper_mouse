@@ -36,13 +36,42 @@ function [amplitudes,f] = findWavelets(projections,numModes,parameters)
         end
     end
     
+    numProcessors = parameters.numProcessors;
+    p = gcp('nocreate');
+    c = parcluster;
+    numAvailableProcessors = c.NumWorkers;
     
-    if matlabpool('size') ~= parameters.numProcessors;
-        matlabpool close force
-        if parameters.numProcessors > 1
-            matlabpool(parameters.numProcessors);
+    if numProcessors > 1 && isempty(p)
+     
+        if numAvailableProcessors > numProcessors
+            numProcessors = numAvailableProcessors;
+            parameters.numProcessors = numAvailableProcessors;
         end
+        
+        if numProcessors > 1
+            p = parpool(numProcessors);
+        end
+        
+        
+    else
+        
+        if numProcessors > 1
+            currentNumProcessors = p.NumWorkers;
+            numProcessors = min([numProcessors,numAvailableProcessors]);
+            if numProcessors ~= currentNumProcessors
+                delete(p);
+                p = parpool(numProcessors); 
+            end
+        end
+        
     end
+    
+    %     if matlabpool('size') ~= parameters.numProcessors;
+    %         matlabpool close force
+    %         if parameters.numProcessors > 1
+    %             matlabpool(parameters.numProcessors);
+    %         end
+    %     end
     
     
     omega0 = parameters.omega0;
@@ -63,11 +92,13 @@ function [amplitudes,f] = findWavelets(projections,numModes,parameters)
     end
     
     
-    if parameters.numProcessors > 1 && parameters.closeMatPool
-        matlabpool close
+    %     if parameters.numProcessors > 1 && parameters.closeMatPool
+    %         matlabpool close
+    %     end
+    
+    if ~isempty(p) && parameters.closeMatPool
+        delete(p);
     end
-    
-    
     
     
     

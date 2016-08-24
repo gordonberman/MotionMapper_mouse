@@ -30,11 +30,41 @@ function [vecs,vals,meanValue] = findPosturalEigenmodes(filePath,pixels,paramete
     parameters = setRunParameters(parameters);
     
     
-    if matlabpool('size') ~= parameters.numProcessors;
-        matlabpool close force
-        if parameters.numProcessors > 1
-            matlabpool(parameters.numProcessors);
+    %     if matlabpool('size') ~= parameters.numProcessors;
+    %         matlabpool close force
+    %         if parameters.numProcessors > 1
+    %             matlabpool(parameters.numProcessors);
+    %         end
+    %     end
+    
+    numProcessors = parameters.numProcessors;
+    p = gcp('nocreate');
+    c = parcluster;
+    numAvailableProcessors = c.NumWorkers;
+    
+    if numProcessors > 1 && isempty(p)
+     
+        if numAvailableProcessors > numProcessors
+            numProcessors = numAvailableProcessors;
+            parameters.numProcessors = numAvailableProcessors;
         end
+        
+        if numProcessors > 1
+            p = parpool(numProcessors);
+        end
+        
+        
+    else
+        
+        if numProcessors > 1
+            currentNumProcessors = p.NumWorkers;
+            numProcessors = min([numProcessors,numAvailableProcessors]);
+            if numProcessors ~= currentNumProcessors
+                delete(p);
+                p = parpool(numProcessors); 
+            end
+        end
+        
     end
     
     
@@ -65,7 +95,10 @@ function [vecs,vals,meanValue] = findPosturalEigenmodes(filePath,pixels,paramete
         onlineImagePCA_radon(vidObjs,batchSize,scale,pixels,thetas,numPerFile);
     
     
-    
-    if parameters.numProcessors > 1 && parameters.closeMatPool
-        matlabpool close
+    if ~isempty(p) && parameters.closeMatPool
+        delete(p);
     end
+    
+    %     if parameters.numProcessors > 1 && parameters.closeMatPool
+    %         matlabpool close
+    %     end

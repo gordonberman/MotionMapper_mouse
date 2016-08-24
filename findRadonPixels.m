@@ -20,8 +20,10 @@ function [pixels,thetas,means,stDevs,vidObjs] = findRadonPixels(filePath,numToTe
 %                   radon-transform values
 %       vidObjs -> VideoReader objects for each of the aligned avi files
 %
-% (C) Gordon J. Berman, 2014
-%     Princeton University
+% (C) Gordon J. Berman, 2016
+%     Emory University
+
+    numPixels = 7000;
 
     addpath(genpath('./utilities/'));
     addpath(genpath('./PCA/'));
@@ -32,11 +34,41 @@ function [pixels,thetas,means,stDevs,vidObjs] = findRadonPixels(filePath,numToTe
     parameters = setRunParameters(parameters);
     
     
-    if matlabpool('size') ~= parameters.numProcessors;
-        matlabpool close force
-        if parameters.numProcessors > 1
-            matlabpool(parameters.numProcessors);
+%     if matlabpool('size') ~= parameters.numProcessors;
+%         matlabpool close force
+%         if parameters.numProcessors > 1
+%             matlabpool(parameters.numProcessors);
+%         end
+%     end
+
+    numProcessors = parameters.numProcessors;
+    p = gcp('nocreate');
+    c = parcluster;
+    numAvailableProcessors = c.NumWorkers;
+    
+    if numProcessors > 1 && isempty(p)
+     
+        if numAvailableProcessors > numProcessors
+            numProcessors = numAvailableProcessors;
+            parameters.numProcessors = numAvailableProcessors;
         end
+        
+        if numProcessors > 1
+            p = parpool(numProcessors);
+        end
+        
+        
+    else
+        
+        if numProcessors > 1
+            currentNumProcessors = p.NumWorkers;
+            numProcessors = min([numProcessors,numAvailableProcessors]);
+            if numProcessors ~= currentNumProcessors
+                delete(p);
+                p = parpool(numProcessors); 
+            end
+        end
+        
     end
     
     numThetas = parameters.num_Radon_Thetas;
@@ -51,35 +83,40 @@ function [pixels,thetas,means,stDevs,vidObjs] = findRadonPixels(filePath,numToTe
     
     [Y,X] = hist(stDevs(:),100);
     figure
-    test = true;
+    %test = true;
     
     semilogy(X,Y,'o-')
-    title('Select Truncation Point (Best if at Local Minimum)','fontsize',16,'fontweight','bold');
+    %title('Select Truncation Point (Best if at Local Minimum)','fontsize',16,'fontweight','bold');
     xlabel('Standard Deviation','fontsize',14,'fontweight','bold')
     ylabel('Number of Counts','fontsize',14,'fontweight','bold')
-    while test
-        
-        [x,~] = ginput(1);
-        pixels = find(stDevs(:) > x);
-        title(['# of Pixels = ' num2str(length(pixels)) '.  Is this OK? [y/n]'],'fontsize',16,'fontweight','bold');
-        
-        [~,~,button] = ginput(1);
-        while isempty(button)
-            [~,~,button] = ginput(1);
-        end
-        
-        while button ~= 121 && button ~= 110 && button ~= 89 && button ~= 78
-            [~,~,button] = ginput(1);
-        end
-        
-        if button == 121 || button == 89
-            test = false;
-        end
-                  
-    end
+    %     while test
+    %
+    %         [x,~] = ginput(1);
+    %         pixels = find(stDevs(:) > x);
+    %         title(['# of Pixels = ' num2str(length(pixels)) '.  Is this OK? [y/n]'],'fontsize',16,'fontweight','bold');
+    %
+    %         [~,~,button] = ginput(1);
+    %         while isempty(button)
+    %             [~,~,button] = ginput(1);
+    %         end
+    %
+    %         while button ~= 121 && button ~= 110 && button ~= 89 && button ~= 78
+    %             [~,~,button] = ginput(1);
+    %         end
+    %
+    %         if button == 121 || button == 89
+    %             test = false;
+    %         end
+    %
+    %     end
     
+    vals = sort(stDevs(:),'descend');
+    pixels = find(stDevs > vals(numPixels));
     
-    if parameters.numProcessors > 1 && parameters.closeMatPool
-        matlabpool close
+    if ~isempty(p) && parameters.closeMatPool
+        delete(p);
     end
+    %     if parameters.numProcessors > 1 && parameters.closeMatPool
+    %         matlabpool close
+    %     end
     
