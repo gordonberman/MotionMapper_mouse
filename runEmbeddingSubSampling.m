@@ -18,8 +18,8 @@ function [trainingSetData,trainingSetAmps,projectionFiles] = ...
 %       projectionFiles -> cell array of files in 'projectionDirectory'
 %
 %
-% (C) Gordon J. Berman, 2014
-%     Princeton University
+% (C) Gordon J. Berman, 2016
+%     Emory University
     
     addpath(genpath('./utilities/'));
     addpath(genpath('./t_sne/'));
@@ -29,13 +29,6 @@ function [trainingSetData,trainingSetAmps,projectionFiles] = ...
     end
     parameters = setRunParameters(parameters);
     
-    
-    %     if matlabpool('size') ~= parameters.numProcessors;
-    %         matlabpool close force
-    %         if parameters.numProcessors > 1
-    %             matlabpool(parameters.numProcessors);
-    %         end
-    %     end
     
     numProcessors = parameters.numProcessors;
     p = gcp('nocreate');
@@ -100,6 +93,3 @@ function [trainingSetData,trainingSetAmps,projectionFiles] = ...
     if ~isempty(p) && parameters.closeMatPool
         delete(p);
     end
-    %     if parameters.numProcessors > 1  && parameters.closeMatPool
-    %         matlabpool close
-    %     end

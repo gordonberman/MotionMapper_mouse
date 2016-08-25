@@ -14,8 +14,8 @@ function [amplitudes,f] = findWavelets(projections,numModes,parameters)
 %       f -> frequencies used in wavelet transforms (Hz)
 %
 %
-% (C) Gordon J. Berman, 2014
-%     Princeton University
+% (C) Gordon J. Berman, 2016
+%     Emory University
 
     
     addpath(genpath('./utilities/'));
@@ -66,12 +66,6 @@ function [amplitudes,f] = findWavelets(projections,numModes,parameters)
         
     end
     
-    %     if matlabpool('size') ~= parameters.numProcessors;
-    %         matlabpool close force
-    %         if parameters.numProcessors > 1
-    %             matlabpool(parameters.numProcessors);
-    %         end
-    %     end
     
     
     omega0 = parameters.omega0;
@@ -90,11 +84,7 @@ function [amplitudes,f] = findWavelets(projections,numModes,parameters)
             fastWavelet_morlet_convolution_parallel(...
             projections(:,i),f,omega0,dt)';
     end
-    
-    
-    %     if parameters.numProcessors > 1 && parameters.closeMatPool
-    %         matlabpool close
-    %     end
+
     
     if ~isempty(p) && parameters.closeMatPool
         delete(p);

@@ -18,8 +18,8 @@ function [zValues,outputStatistics] = ...
 %       outputStatistics -> struct containing embedding outputs
 %
 %
-% (C) Gordon J. Berman, 2014
-%     Princeton University
+% (C) Gordon J. Berman, 2016
+%     Emory University
 
     addpath(genpath('./utilities/'));
     addpath(genpath('./t_sne/'));
@@ -31,13 +31,6 @@ function [zValues,outputStatistics] = ...
     parameters = setRunParameters(parameters);
     
     
-    
-    %     if matlabpool('size') ~= parameters.numProcessors;
-    %         matlabpool close force
-    %         if parameters.numProcessors > 1
-    %             matlabpool(parameters.numProcessors);
-    %         end
-    %     end
     
     numProcessors = parameters.numProcessors;
     p = gcp('nocreate');
@@ -112,6 +105,3 @@ function [zValues,outputStatistics] = ...
         delete(p);
     end                            
     
-    %     if parameters.numProcessors > 1  && parameters.closeMatPool
-    %         matlabpool close
-    %     end

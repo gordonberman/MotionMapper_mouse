@@ -17,8 +17,8 @@ function projections = findProjections(filePath,vecs,meanValues,pixels,parameter
 %       projections -> N x d array of projection values
 %
 %
-% (C) Gordon J. Berman, 2014
-%     Princeton University
+% (C) Gordon J. Berman, 2016
+%     Emory University
 
     
     addpath(genpath('./utilities/'));
@@ -29,13 +29,6 @@ function projections = findProjections(filePath,vecs,meanValues,pixels,parameter
     end
     parameters = setRunParameters(parameters);
     
-    
-    %     if matlabpool('size') ~= parameters.numProcessors;
-    %         matlabpool close force
-    %         if parameters.numProcessors > 1
-    %             matlabpool(parameters.numProcessors);
-    %         end
-    %     end
     
     numProcessors = parameters.numProcessors;
     p = gcp('nocreate');
@@ -96,11 +89,7 @@ function projections = findProjections(filePath,vecs,meanValues,pixels,parameter
     
     projections = find_PCA_projections(vidObjs,vecs(:,1:numProjections),...
         meanValues,pixels,thetas,numProjections,scale,batchSize);
-    
-        
-    %     if parameters.numProcessors > 1  && parameters.closeMatPool
-    %         matlabpool close
-    %     end
+
     
     if ~isempty(p) && parameters.closeMatPool
         delete(p);
