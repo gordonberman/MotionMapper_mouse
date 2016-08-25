@@ -2,8 +2,7 @@
 %%found in filePath
 
 %Place path to folder containing example .avi files here
-%filePath = '/Users/gberman/Dropbox/Data/MotionMapper/Sample_KumarLab_Videos/2016-06-01_LL1-3_101045-M-MP14-10-42430-3-S169.avi';
-filePath = '/Users/gberman/Desktop/mouse_test/';
+filePath = '';
 
 %add utilities folder to path
 addpath(genpath('./utilities/'));
